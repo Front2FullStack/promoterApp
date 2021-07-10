@@ -4,10 +4,9 @@ import (
 	"promoter/src/database"
 	"promoter/src/middlewares"
 	"promoter/src/models"
-	"strconv"
+	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -27,7 +26,7 @@ func Register(c *fiber.Ctx) error {
 		FirstName:  data["first_name"],
 		LastName:   data["last_name"],
 		Email:      data["email"],
-		IsPromoter: false,
+		IsPromoter: strings.Contains(c.Path(), "api/promoter"),
 	}
 
 	//Set Password
@@ -60,12 +59,25 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	payload := jwt.StandardClaims{
-		Subject:   strconv.Itoa(int(user.Id)),
-		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	isPromoter := strings.Contains(c.Path(), "api/promoter")
+
+	var scope string
+
+	if isPromoter {
+		scope = "promoter"
+	} else {
+		scope = "admin"
 	}
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString([]byte("secret"))
+	if !isPromoter && user.IsPromoter {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+
+	token, err := middlewares.GenerateJWT(user.Id, scope)
+
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
