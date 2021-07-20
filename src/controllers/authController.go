@@ -69,6 +69,7 @@ func Login(c *fiber.Ctx) error {
 		scope = "admin"
 	}
 
+	// promoter user try to access admin route
 	if !isPromoter && user.IsPromoter {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -105,6 +106,12 @@ func User(c *fiber.Ctx) error {
 	var user models.User
 
 	database.DB.Where("id = ?", id).First(&user)
+
+	if strings.Contains(c.Path(), "api/promoter") {
+		promoter := models.Promoter(user)
+		promoter.CalculateRevenue(database.DB)
+		return c.JSON(promoter)
+	}
 
 	return c.JSON(user)
 }
