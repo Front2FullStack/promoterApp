@@ -29,6 +29,9 @@ func CreateProducts(c *fiber.Ctx) error {
 
 	database.DB.Create(&product)
 
+	//delete redis cache with go routine
+	go database.ClearCache("products_frontend", "products_backend")
+
 	return c.JSON(product)
 }
 
@@ -58,6 +61,9 @@ func UpdateProduct(c *fiber.Ctx) error {
 
 	database.DB.Model(&product).Updates(&product)
 
+	//delete redis cache with go routine
+	go database.ClearCache("products_frontend", "products_backend")
+
 	return c.JSON(product)
 }
 
@@ -70,6 +76,9 @@ func DeleteProduct(c *fiber.Ctx) error {
 	}
 
 	database.DB.Delete(&product)
+
+	//delete redis cache with go routine
+	go database.ClearCache("products_frontend", "products_backend")
 
 	return nil
 }
