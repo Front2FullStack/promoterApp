@@ -31,6 +31,7 @@ func Setup(app *fiber.App) {
 	promoter.Post("register", controllers.Register)
 	promoter.Post("login", controllers.Login)
 	promoter.Get("products/frontend", controllers.ProductsFrontend)
+	promoter.Get("products/backend", controllers.ProductsBackend)
 
 	promoterAuthenticated := promoter.Use(middlewares.IsAuthenticated)
 	promoterAuthenticated.Get("user", controllers.User)
