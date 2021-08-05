@@ -38,4 +38,7 @@ func Setup(app *fiber.App) {
 	promoterAuthenticated.Post("logout", controllers.Logout)
 	promoterAuthenticated.Put("users/info", controllers.UpdateInfo)
 	promoterAuthenticated.Put("users/password", controllers.UpdatePassword)
+	promoterAuthenticated.Post("links", controllers.CreateLink)
+	promoterAuthenticated.Get("stats", controllers.Stats)
+	promoterAuthenticated.Get("rankings", controllers.Rankings)
 }
