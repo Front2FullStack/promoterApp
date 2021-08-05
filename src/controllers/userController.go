@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"promoter/src/database"
 	"promoter/src/models"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,21 +18,19 @@ func Promoters(c *fiber.Ctx) error {
 
 func Rankings(c *fiber.Ctx) error {
 
-	var users []models.User
+	rankings, err := database.Cache.ZRevRangeByScoreWithScores(context.Background(), "rankings", &redis.ZRangeBy{
+		Min: "-inf",
+		Max: "+inf",
+	}).Result()
 
-	database.DB.Find(&users, models.User{
-		IsPromoter: true,
-	})
+	if err != nil {
+		return err
+	}
 
-	var result []interface{}
+	result := make(map[string]float64)
 
-	for _, user := range users {
-		promoter := models.Promoter(user)
-		promoter.CalculateRevenue(database.DB)
-
-		result = append(result, fiber.Map{
-			user.Name(): promoter.Revenue,
-		})
+	for _, ranking := range rankings {
+		result[ranking.Member.(string)] = ranking.Score
 	}
 
 	return c.JSON(result)
