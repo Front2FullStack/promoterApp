@@ -1,11 +1,13 @@
 package controllers
 
 import (
-	"fmt"
+	"os"
 	"promoter/src/database"
 	"promoter/src/models"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/checkout/session"
 )
 
 func Orders(c *fiber.Ctx) error {
@@ -76,7 +78,8 @@ func CreateOrder(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Printf("Hello %v", request)
+	// lineItems stripe payload
+	var lineItems []*stripe.CheckoutSessionLineItemParams
 
 	for _, requestProduct := range request.Products {
 
@@ -103,8 +106,50 @@ func CreateOrder(c *fiber.Ctx) error {
 			})
 		}
 
+		// needed for checkout
+		lineItems = append(lineItems, &stripe.CheckoutSessionLineItemParams{
+			Name:        stripe.String(product.Title),
+			Description: stripe.String(product.Description),
+			Images:      []*string{stripe.String(product.Image)},
+			Amount:      stripe.Int64(100 * int64(product.Price)), // should be in cents
+			Currency:    stripe.String("usd"),
+			Quantity:    stripe.Int64(int64(requestProduct["quantity"])),
+		})
+
 	}
+
+	// Stripe
+	stripe.Key = os.Getenv("STRIPEKEY")
+
+	// params for checkout session
+	params := stripe.CheckoutSessionParams{
+		SuccessURL:         stripe.String("http://localhost:5000/success?source={CHECKOUT_SESSION_ID"),
+		CancelURL:          stripe.String("http://localhost:5000/error"),
+		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+		LineItems:          lineItems,
+	}
+
+	source, err := session.New(&params)
+	if err != nil {
+		tx.Rollback()
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
+
+	order.TrasactionId = source.ID
+
+	// Save transaction ID in order , note need to save not create
+	if err := tx.Save(&order).Error; err != nil {
+		tx.Rollback()
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
+
 	// to finish tx
 	tx.Commit()
-	return c.JSON(order)
+	return c.JSON(source)
 }

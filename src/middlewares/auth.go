@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -9,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-const SecretKey = "secret"
+var SecretKey = os.Getenv("SECRETKEY")
 
 type ClaimsWithScope struct {
 	jwt.StandardClaims
