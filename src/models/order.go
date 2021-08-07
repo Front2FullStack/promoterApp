@@ -12,6 +12,7 @@ type Order struct {
 	Email         string      `json:"email"`
 	Address       string      `json:"address" gorm:"null"`
 	City          string      `json:"city" gorm:"null"`
+	Country       string      `json:"country" gorm:"null"`
 	Zip           string      `json:"zip" gorm:"null"`
 	Complete      bool        `json:"complete" gorm:"default:false"`
 	Total         float64     `json:"total" gorm:"-"`
